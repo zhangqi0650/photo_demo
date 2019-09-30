@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>照片打印</title>
+		<script type="text/javascript">			
+			if(/Android (\d+\.\d+)/.test(navigator.userAgent)){
+				var version = parseFloat(RegExp.$1);
+				if(version>2.3){
+					var phoneScale = parseInt(window.screen.width)/750;
+					document.write('<meta name="viewport" content="width=750, minimum-scale = '+ phoneScale +', maximum-scale = '+ phoneScale +', target-densitydpi=device-dpi">');
+				}else{
+					document.write('<meta name="viewport" content="width=750, target-densitydpi=device-dpi">');
+				}
+			}else{
+				document.write('<meta name="viewport" content="width=750, user-scalable=no, target-densitydpi=device-dpi">');
+			}		
+		</script>
+		<style type="text/css">
+			*{	
+				margin: 0;
+				padding: 0;   
+				-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+				-webkit-tap-highlight-color: transparent;
+				outline: none;
+				background:none;
+				text-decoration: none;
+			}
+			html,body{
+			    height: 100%;
+			    width: 750px;
+			    overflow: hidden;
+			 	-webkit-touch-callout:none; /* 禁用长触弹出的下载图片菜单 */
+			    -webkit-user-select:none; /* 禁用长触选择文字等功能 */
+			   	touch-action: none;
+				touch-action:pan-x;
+				touch-action:pan-y;
+				touch-action: cross-slide-x;
+				touch-action: cross-slide-y;
+				color: #fff;
+				font-family: cursive;
+			}
+			
+			li {
+				list-style: none;
+			}
+			
+			.hide{
+				display: none;
+			}
+			.main{
+				height: 100%;
+				width: 100%;
+				position: relative;
+			}
+			.loading {
+				background: #000;
+				position: relative;
+				height: 100%;
+				width: 100%;
+				z-index: 100;
+			}
+			
+			.scroll {
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				margin: auto;
+				height: 7px;
+				width: 60%;
+				background: #ccc;
+				border-radius: 3px;
+			}
+			.scroolInner {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 0;
+				height: 100%;
+				background: #fff;
+				border-radius: 3px;
+			}
+			
+			.txt {
+				position: absolute;
+				top: -48px;
+				height: 30px;
+				width: 30px;
+				text-align: center;
+				line-height: 30px;
+				padding: 5px;
+				border: 1px solid #fff;
+				border-radius: 50%;
+			}
+
+			.container{
+				height: 100%;
+				width: 100%;
+				position: relative;
+				background: url(./img/bg.jpg) no-repeat center;
+				background-size:cover;
+			}
+			#cvs,.photo{
+				display: block;
+				position: absolute;
+				top: 2%;
+				left: 0;
+				right: 0;
+				margin:0 auto;
+			}
+			.photo::before{
+				height: 100%;
+				width: calc(100% + 14px);
+				content: " ";
+				position: absolute;
+				left: -7px;
+				top: 7px;
+				background: #fff;
+			}
+			.btn{
+				font-size: 26px;
+				color: #FFFFFF;
+				background: url(./img/save.png) no-repeat center;
+				background-size: 100% 100%;
+				text-align: center;
+				padding: 10px 0;
+				width: 100px;
+				height: 24px;
+				line-height: 24px;
+				border-radius: 5px;
+				position: absolute;
+				left: 0;
+				right:0;
+				margin: 0 auto;
+				top: 93%;
+			}
+			.border_group{
+				width: 100%;
+				border: 1px solid #ccc;
+				position: absolute;
+				bottom: 10%;
+				overflow-x: hidden;
+				overflow-x: scroll;
+				-webkit-overflow-scrolling: touch;
+				box-sizing: border-box;
+    			background: #00000024;
+			}
+			.group_inner{
+				width: max-content;
+				
+			}
+			.group_inner>div{
+				background-color: #ffffffa6;
+				background-position: center;
+				background-repeat: no-repeat;
+				background-size: contain;
+				height: 15%;
+				width: 144px;
+				margin: 5px 5px;
+				float: left;
+				filter: brightness(0.6) blur(4px);
+				transition: filter .6s linear;
+			}
+			.group_inner>div>img{
+				width:100%;
+				height: 100%;
+			}
+			.group_inner>div.ac{
+				border: 1px solid red;
+				filter: brightness(1) blur(0);
+			}
+			.startPhone {
+				position: absolute;
+				top: 0;
+				height: 100%;
+				width: 100%;
+				background: #000000e0;
+			}
+			.startPhone>div.inner{
+				height: 100%;
+				width: 100%;
+				display: flex;
+				flex-direction: column;
+			    justify-content: center;
+			    align-items: center
+			}
+			.startPhone img{
+				margin-bottom: 30px;
+			}
+			.startPhone  p{
+				padding: 5px;
+				box-shadow: 0 0 30px #fff;
+			}
+		</style>
+		<script src="./js/jquery-3.3.1.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="./js/preloadjs-0.6.0.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="./js/easelJs.js" type="text/javascript" charset="utf-8"></script>
+		<script src="./js/TweenMax.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="./js/canvar-sequence.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+	<body>
+		<div class="main">
+			<div class="loading">
+				<div class="scroll">
+					<div class="scroolInner"></div>
+					<div class="txt">0%</div>
+				</div>
+			</div>
+			<div class="container">
+				<div class="photo" id="sequence"></div>
+				<canvas id="cvs" width="" height=""></canvas>
+				<div class="border_group">
+					<div class="group_inner"></div>
+				</div>
+				<div class="save btn">打印</div>
+				
+			</div>
+			<div class="startPhone hide">
+				<div class="inner">
+					<img src="./img/loading.gif"/>
+					<p>照片打印中，请稍后！</p>
+				</div>
+				
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		$(function(){
+		    "use strict"
+		    window.addEventListener('online', function(){
+    console.log('网络连接恢复！');
+})
+window.addEventListener('offline', function(){
+    console.log('网络连接中断！');
+})
+ 
+		    const score=99;
+		    const imgPath="./img/save.png";
+		    const borderLength=7;
+		    let mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent),
+		        touchstart = mobile ? "touchstart" : "mousedown",
+		        touchend = mobile ? "touchend" : "mouseup",
+		        touchmove = mobile ? "touchmove" : "mousemove";
+		    $('canvas').on(touchmove, function(e) {
+		        e.preventDefault();
+		    });
+		    $("div.group_inner").off(touchmove);		  
+			const screen_H=$(window).height();
+			const screen_W=$(window).width();
+			const border_cvs = document.getElementById("cvs");	
+			const canvas_H= screen_H*0.68;
+			const canvas_W= canvas_H/3*2;
+			$("#cvs ,#sequence").css({
+				"height":canvas_H,
+				"width":canvas_W
+			})
+			border_cvs.height =canvas_H ;
+			border_cvs.width = canvas_W;
+			let change_border_H=screen_H*0.15;
+		    let change_border_W=change_border_H/3*2;		    
+			let loadingPath = './img/';
+		    let manifest = [
+		        {src: loadingPath +"save.png",id: 'save'},
+		        {src: loadingPath +"text.png",id: 'textBg'},
+		       ]
+		    
+		    for(var i=1;i<=borderLength;i++){                     
+                manifest.push({src:loadingPath +"border"+i+".png",id:"border"+i+""});              
+            }  
+		    let queue;
+		    let sequence=  new Sequence({
+		        width: canvas_W,
+		        height: canvas_H,
+		        id:"sequence",
+		      	//img:"https://ccb-data-server.oss-cn-beijing.aliyuncs.com/facehd/test.jpg",
+		      	img:imgPath,
+		        evtId:"cvs",
+		        cvsId:"photoBg",
+		        cb:function(){
+		        	console.log(manifest)
+		            queue = new createjs.LoadQueue(false);
+		            queue.loadManifest(manifest);
+		            queue.on("progress", handleOverallProgress, this);
+		            queue.on("complete", handleComplete, this);
+		        }
+		    })   
+			//loading
+		    function handleOverallProgress(event) {
+		        $(".scroolInner").width(Math.ceil(event.loaded * 100) + "%");
+		        $(".loading .txt").css({
+		            "left":Math.ceil(event.loaded * 100) + "%"
+		        }).text(Math.ceil(event.loaded * 100) + "%");		
+		    } 
+		    //加载完成
+		    let borderArrs=[];
+		    
+		    let border_num=0;
+		    function handleComplete() {
+		        $(".loading").fadeOut().remove();        
+		        init();
+		    }
+		    function init(){
+		    	let phoneScale = parseInt(window.screen.width)/750;
+		        for (let i=1;i<=borderLength;i++) {
+		            $("<div class='change_border' style='background-image: url("+imgPath+")'><img src='./img/border"+i+".png'/></div>").css({
+				    	"height":change_border_H,
+				    	"width":change_border_W
+				    }).appendTo(".group_inner")
+		            let Bitmap = new createjs.Bitmap(queue.getResult("border"+i));
+		            let Bitmap_w=Bitmap.image.width;
+		                Bitmap.scale=canvas_W/Bitmap_w;
+		            Bitmap.alpha=0;
+		            container.addChild(Bitmap);
+		            borderArrs.push(Bitmap)
+		        }		        
+		        borderArrs[border_num].alpha=1;		       
+		        $(".change_border").eq(border_num).addClass("ac");
+		        let textPos={
+		        	x:350*canvas_W/657,
+		        	y:canvas_H-150
+		        }
+		        let font_size=45+"px";
+		        let textContainer= new createjs.Container();
+		        textContainer.x=textPos.x;
+		        textContainer.y=textPos.y;
+		        let text1= new createjs.Text("颜值：", ""+font_size+" cursive", "#fff");
+		        
+		        let text2= new createjs.Text(score, ""+font_size+" cursive", "pink");
+		        let text3= new createjs.Text("分", ""+font_size+" cursive", "#fff");
+				text1.x=5*canvas_W/657;
+				text1.shadow= new createjs.Shadow("#000000", 0, 0, 20);  ;
+				
+				text2.x=135*canvas_W/657;
+				text3.x=200*canvas_W/657;
+				let Bitmap = new createjs.Bitmap(queue.getResult('textBg'));
+	            let Bitmap_w=Bitmap.image.width;
+	               Bitmap.scale=1.5;
+	             Bitmap.x=-14;
+	             Bitmap.y=-3
+		    	textContainer.addChild(Bitmap,text1,text2,text3);
+		    	container.addChild(textContainer);
+		        createjs.Ticker.addEventListener('tick', tickUpdata);		        
+		        let prev_index=0;;
+		        $(".change_border").on(touchend,function(){
+		            border_num=$(this).index(); 
+		            if(prev_index!=border_num){
+		                $(this).addClass("ac");
+		                $(".change_border").eq(prev_index).removeClass("ac");
+		                TweenMax.to(borderArrs[prev_index],.5,{alpha:0});
+		                TweenMax.to(borderArrs[border_num],.8,{alpha:1});
+		            }else{
+		                return false;
+		            }           
+		            prev_index=border_num;		            
+		        })		        
+		        $(".save").on(touchend,function(){
+		        	$(".startPhone").fadeIn();
+		            let bg_cvs = document.getElementById("photoBg");
+		            let photoURL = bg_cvs.toDataURL("image/png");           
+		            let img=new Image();
+		            img.src=photoURL;
+		            img.onload=function(){
+		                let photo = new createjs.Bitmap(img);   
+		                let photo_w=photo.image.width;
+		                photo.scale=canvas_W/photo_w;
+		                container.addChild(photo);
+		                container.setChildIndex(photo,0);
+		                setTimeout(function(){
+		                    let dataURL = border_cvs.toDataURL("image/jpeg",.6);		                    
+		                    $.ajax({
+		                    	type:"post",
+		                    	url:"http://hd-ccb.nee-how.com/facehd/printtask/submit",
+		                    	async:true,
+		                    	dataType:'text',
+		                    	data:dataURL,
+		                    	success:function(data){
+									//let data=eval(data)
+		                    		if(data.success){
+		                    			//$(".savapges img").attr("src",dataURL);
+		                   				$(".startPhone").fadeOut();
+		                    			alert("打印成功")
+		                    			//打印成功
+		                    		}else{
+		                    			alert(data.errorMsg)
+		                    		}
+		                    		 
+		                    	},
+		                    	error:function (e) {
+		                    		alert("未知错误")
+		                    		
+		                    	}		                    	                				 
+		                    });
+		                    
+		                },100)
+		                
+		            }
+		            
+		        })
+		
+		    }
+		   
+			var stage = new createjs.Stage(border_cvs);
+			var container = new createjs.Container();
+				stage.addChild(container);
+		
+		
+		    createjs.Ticker.timingMode = createjs.Ticker.RAF;
+		    createjs.Ticker.setFPS(60);
+		    function tickUpdata(){
+		        stage.update();
+		    }
+		    window.alert = function(name){
+		        let iframe = document.createElement("IFRAME");
+		        iframe.style.display="none";
+		        iframe.setAttribute("src", 'data:text/plain,');
+		        document.documentElement.appendChild(iframe);
+		        window.frames[0].window.alert(name);
+		        iframe.parentNode.removeChild(iframe);
+		    };
+		})
+	</script>
+</html>
